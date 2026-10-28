@@ -1,0 +1,47 @@
+
+# Dependencies
+node_modules/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Turbo cache
+.turbo/
+
+# Local databases and backups
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local uploads and storage
+uploads/
+storage/
+minio-data/
+
+# IDE and operating system files
+.vscode/settings.json
+.DS_Store

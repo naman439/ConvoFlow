@@ -1,0 +1,22 @@
+{
+  "name": "convoflow",
+  "version": "1.0.0",
+  "description": "Production-grade real-time chat platform powered by Next.js, NestJS, Socket.IO, Redis, Kafka, RabbitMQ, and PostgreSQL",
+  "private": true,
+  "scripts": {
+    "dev:api": "pnpm --filter api run start:dev",
+    "dev:web": "pnpm --filter web run dev",
+    "build": "pnpm --filter api run build && pnpm --filter web run build",
+    "build:api": "pnpm --filter api run build",
+    "build:web": "pnpm --filter web run build",
+    "db:push": "pnpm --filter api exec prisma db push",
+    "db:generate": "pnpm --filter api exec prisma generate",
+    "db:seed": "pnpm --filter api exec ts-node prisma/seed.ts",
+    "docker:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f infrastructure/docker/docker-compose.yml down"
+  },
+  "keywords": ["chat", "real-time", "socket.io", "nestjs", "nextjs", "redis", "kafka", "rabbitmq"],
+  "author": "",
+  "license": "MIT",
+  "type": "module"
+}

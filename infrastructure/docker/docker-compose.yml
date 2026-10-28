@@ -1,0 +1,113 @@
+version: "3.9"
+
+services:
+  # ──────────────────────────── PostgreSQL ────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: convoflow_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: convoflow
+      POSTGRES_PASSWORD: convoflow_secret
+      POSTGRES_DB: convoflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U convoflow -d convoflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────── Redis ────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: convoflow_redis
+    restart: unless-stopped
+    command: redis-server --requirepass convoflow_redis_secret
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "convoflow_redis_secret", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────── RabbitMQ ────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: convoflow_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: convoflow
+      RABBITMQ_DEFAULT_PASS: convoflow_rabbit_secret
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ──────────────────────────── Zookeeper (for Kafka) ────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: convoflow_zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD-SHELL", "echo srvr | nc localhost 2181 | grep -q 'Zookeeper version'"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ──────────────────────────── Kafka ────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: convoflow_kafka
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9093,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 24
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 2>/dev/null | grep -q 'localhost:9092'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  zookeeper_data:
+  zookeeper_logs:
+  kafka_data:
+
+networks:
+  default:
+    name: convoflow_network
